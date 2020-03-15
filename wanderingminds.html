@@ -1,0 +1,927 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8" />
+    <title>Making your first Phaser 3 Game - Part 10</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+
+  <div class="container">
+  <div class="row">
+	<button id="next" type="button" onclick="nextpage()" class="btn btn-default">result</button> 
+  </div>
+</div>
+
+
+<script type="text/javascript">
+
+var config = {
+    type: Phaser.AUTO,
+    width: 1100,
+    height: 608,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+var player;
+var stars;
+var bombs;
+var objects;
+var cursors;
+var score = 0;
+var gameOver = false;
+var scoreText;
+var scoreTextX;
+var scoreTextY;
+var countX=0;
+var countY=0;
+var count=0;
+var tile=16;
+var prevX=Math.round(100/tile);
+var y=Math.round(400/tile);
+var currX;
+var currY;
+var gridX;
+var gridY;
+var prevLeft, prevRight, prevUp, prevDown;
+var currLeft, currRight, currUp, currDown;
+
+var prevLeftKey=false, prevRightKey=false, prevUpKey=false, prevDownKey=false;
+var currLeftKey=false, currRightKey=false, currUpKey=false, currDownKey=false;
+
+var canLeft, canRight, canUp, canDown;
+
+var Xtiles=800/tile;
+var Ytiles=608/tile;
+
+var grass=100;
+var road=101;
+
+var collisionTime=[0,0,0,0,0,0,0,0];
+var collisionCount=[0,0,0,0,0,0,0,0];
+var objectDrawn=[false, false, false, false, false, false, false, false];
+
+var letterbox=0;
+var shop=1;
+var redtree=2;
+var bluetree=3;
+var box=4;
+var house=5;
+var rock=6;
+var water=7;
+
+var prevRiddleState=0;
+var currRiddleState=0;
+
+var riddleY=950;
+var riddleX=300;
+
+
+///calculation var
+
+
+// id and count
+
+var grid=
+[[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass],
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  box, box, box, grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  box, box, box, grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  house, house, house, house, house, house, house, house, house, grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass],
+[grass,  grass,  grass,  grass,  grass,  box, box, box, grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  house, house, house, house, house, house, house, house, house, grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  house, house, house, house, house, house, house, house, house, grass,  grass,  grass,  grass,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  rock,  rock,  grass,  grass,  grass,  house, house, house, house, house, house, house, house, house, grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  house, house, house, house, house, house, house, house, house, grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  rock,  rock,  grass,  grass,  grass,  house, house, house, house, house, house, house, house, house, grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  house, house, house, house, house, house, house, house, house, grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  house, house, house, house, house, house, house, house, house, grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass],
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  house, house, house, house, house, house, house, house, house, grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass],
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass, redtree, redtree, redtree, redtree, redtree, redtree, redtree, redtree,  grass], 
+[grass,  grass,  grass,  grass, shop, shop, shop, shop, shop, shop, grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass, redtree, redtree, redtree, redtree, redtree, redtree, redtree, redtree,  grass], 
+[grass,  grass,  grass,  grass, shop, shop, shop, shop, shop, shop, grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass, redtree, redtree, redtree, redtree, redtree, redtree, redtree, redtree,  grass], 
+[grass,  grass,  grass,  grass, shop, shop, shop, shop, shop, shop, grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  road,  road,  road,  road,  road,  road,  road,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass, redtree, redtree, redtree, redtree, redtree, redtree, redtree, redtree,  grass], 
+[grass,  grass,  grass,  grass, shop, shop, shop, shop, shop, shop, grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  water, water, water, water, water, water,  road,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass, redtree, redtree, redtree, redtree, redtree, redtree, redtree, redtree,  grass], 
+[grass,  road,  road,  road,  shop, shop, shop, shop, shop, shop, road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  water, water, water, water, water, water,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  redtree, redtree, redtree, redtree, redtree, redtree, redtree, redtree,  grass], 
+[grass,  grass,  grass,  grass, shop, shop, shop, shop, shop, shop, grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  road,  water, water, water, water, water, water,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass, shop, shop, shop, shop, shop, shop, grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  road,  water, water, water, water, water, water,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass, rock,  road,  grass,  grass,  grass,  grass,  road,  water, water, water, water, water, water,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass, rock,  road,  grass,  grass,  grass,  grass,  road,  road,  road,  road,  road,  road,  road,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass, rock,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree,  grass],
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  letterbox,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  road,  grass, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree,  grass], 
+[grass,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  road,  bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree, bluetree,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass], 
+[grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass,  grass]];
+
+
+var game = new Phaser.Game(config);
+
+function preload ()
+{
+    this.load.image('sky', 'assets/sky.png');
+    this.load.image('ground', 'assets/platform.png');
+    this.load.image('star', 'assets/star.png');
+    this.load.image('bomb', 'assets/bomb.png');
+
+    this.load.image('letterbox', 'assets/props n decorations/generic-rpg-board01.png');
+    this.load.image('grass1', 'assets/props n decorations/generic-rpg-grass02.png');
+    this.load.image('redtree', 'assets/props n decorations/generic-rpg-tree02.png');
+    this.load.image('bluetree', 'assets/props n decorations/generic-rpg-tree01.png');
+    this.load.image('shop', 'assets/chars/vendor/generic-rpg-vendor.png');
+    this.load.image('house', 'assets/props n decorations/generic-rpg-house-inn.png');
+    this.load.image('box', 'assets/props n decorations/generic-rpg-treasure-closed.png');
+    this.load.image('boxopen', 'assets/props n decorations/generic-rpg-treasure-open.png');
+    this.load.image('water', 'assets/props n decorations/generic-rpg-mini-lake.png');
+    this.load.image('wall1', 'assets/wall1.png');
+    this.load.image('wall2', 'assets/wall2.png');
+    this.load.image('browntile', 'assets/tiles/generic-rpg-tile71.png');
+    this.load.image('rightarcup', 'assets/tiles/generic-rpg-tile31.png');
+	this.load.image('leftarcup', 'assets/tiles/generic-rpg-tile19.png');
+	this.load.image('leftarcdown', 'assets/tiles/generic-rpg-tile61.png');
+	this.load.image('rightarcdown', 'assets/tiles/generic-rpg-tile62.png');
+	this.load.image('rock', 'assets/props n decorations/generic-rpg-rock04.png');
+	this.load.image('flowers', 'assets/props n decorations/generic-rpg-flowers.png');
+	this.load.image('roadtop', 'assets/GuttyKreumNatureTilesvol1/roadtop32x32transparent.png');
+	this.load.image('roadmiddle', 'assets/GuttyKreumNatureTilesvol1/roadmiddle32x32transparent.png');
+	this.load.image('tree', 'assets/GuttyKreumNatureTilesvol1/tree96x96transparent.png');
+	this.load.image('fence', 'assets/props n decorations/generic-rpg-fence-complete.png');
+	this.load.image('redpotion', 'assets/props n decorations/generic-rpg-loot03.png');
+	this.load.image('bluepotion', 'assets/props n decorations/generic-rpg-loot04.png');
+	this.load.image('bridge', 'assets/props n decorations/generic-rpg-bridge.png');
+	this.load.image('waterright', 'assets/tiles/generic-rpg-tile65.png');
+	this.load.image('waterleft', 'assets/tiles/generic-rpg-tile66.png');
+	this.load.image('pondleft', 'assets/tiles/generic-rpg-tile-waterfall05.png');
+	this.load.image('pondright', 'assets/tiles/generic-rpg-tile-waterfall07.png');
+	this.load.image('wf01', 'assets/tiles/generic-rpg-tile-waterfall01.png');
+	this.load.image('wf02', 'assets/tiles/generic-rpg-tile-waterfall02.png');
+	this.load.image('wf03', 'assets/tiles/generic-rpg-tile-waterfall03.png');
+	this.load.image('wf04', 'assets/tiles/generic-rpg-tile-waterfall04.png');
+	// this.load.image('wf05', 'assets/tiles/generic-rpg-tile-waterfall08.png');
+	// this.load.image('wf06', 'assets/tiles/generic-rpg-tile-waterfall09.png');
+	this.load.image('f_leftup', 'assets/props n decorations/generic-rpg-fence01.png');
+	this.load.image('f_front', 'assets/props n decorations/generic-rpg-fence02.png');
+	this.load.image('f_rightup', 'assets/props n decorations/generic-rpg-fence05.png');
+	this.load.image('f_rightdown', 'assets/props n decorations/generic-rpg-fence08.png');
+	this.load.image('f_leftdown', 'assets/props n decorations/generic-rpg-fence12.png');
+	this.load.image('f_side', 'assets/props n decorations/generic-rpg-fence14.png');
+	this.load.image('board', 'assets/props n decorations/generic-rpg-board03.png');
+  this.load.image('key', 'assets/key.png');
+
+  this.load.image('riddle0', 'assets/Riddles/0.png');
+  this.load.image('riddle1', 'assets/Riddles/1.png');
+  this.load.image('riddle2', 'assets/Riddles/2.png');
+  this.load.image('riddle3', 'assets/Riddles/3.png');
+
+ //    this.load.image('roadtop', 'assets/tiles/generic-rpg-tile29.png');
+ //    this.load.image('roadbottom', 'assets/tiles/generic-rpg-tile39.png');
+ //    this.load.image('roadleft', 'assets/tiles/generic-rpg-tile10.png');
+ //    this.load.image('roadright', 'assets/tiles/generic-rpg-tile48.png');
+ //    this.load.image('roadcenter', 'assets/tiles/generic-rpg-tile71.png');
+ //    this.load.image('roadtopleft', 'assets/tiles/generic-rpg-tile19.png');
+ //    this.load.image('roadbottomleft', 'assets/tiles/generic-rpg-tile57.png');
+ //    this.load.image('roadtopright', 'assets/tiles/generic-rpg-tile31.png');
+ //    this.load.image('roadbottomright', 'assets/tiles/generic-rpg-tile46.png');
+
+    // this.load.image('grasstop', 'assets/tiles/generic-rpg-tile40.png');
+    // this.load.image('grassbottom', 'assets/tiles/generic-rpg-tile03.png');
+    // this.load.image('grassleft', 'assets/tiles/generic-rpg-tile34.png');
+    // this.load.image('grassright', 'assets/tiles/generic-rpg-tile13.png');
+    // this.load.image('grasscenter', 'assets/tiles/generic-rpg-Slice.png');
+    // this.load.image('grasstopleft', 'assets/tiles/generic-rpg-tile07 - Copy - Copy (2).png');
+    // this.load.image('grassbottomleft', 'assets/tiles/generic-rpg-tile07 - Copy - Copy.png');
+    // this.load.image('grasstopright', 'assets/tiles/generic-rpg-tile07 - Copy.png');
+    // this.load.image('grassbottomright', 'assets/tiles/generic-rpg-tile07.png');
+
+    this.load.image('grass-1-0', 'assets/tiles/generic-rpg-tile40.png');
+    this.load.image('grass-1-2', 'assets/tiles/generic-rpg-tile03.png');
+    this.load.image('grass-0-1', 'assets/tiles/generic-rpg-tile34.png');
+    this.load.image('grass-2-1', 'assets/tiles/generic-rpg-tile13.png');
+    this.load.image('grass-1-1', 'assets/tiles/generic-rpg-Slice.png');
+    this.load.image('grasscenter', 'assets/tiles/generic-rpg-Slice.png');
+    this.load.image('grass-0-0', 'assets/tiles/generic-rpg-tile07 - Copy - Copy (2).png');
+    this.load.image('grass-0-2', 'assets/tiles/generic-rpg-tile07 - Copy - Copy.png');
+    this.load.image('grass-2-0', 'assets/tiles/generic-rpg-tile07 - Copy.png');
+    this.load.image('grass-2-2', 'assets/tiles/generic-rpg-tile07.png');
+
+    this.load.image('roadcenter', 'assets/tiles/generic-rpg-tile71.png');
+    this.load.image('road-0-0', 'assets/tiles/generic-rpg-tile59.png');
+    this.load.image('road-1-0', 'assets/tiles/generic-rpg-tile35.png');
+    this.load.image('road-2-0', 'assets/tiles/generic-rpg-tile60.png');
+    this.load.image('road-0-1', 'assets/tiles/generic-rpg-tile16.png');
+
+    this.load.image('road-1-1', 'assets/tiles/generic-rpg-tile71.png');
+
+    this.load.image(
+      'road-2-1', 'assets/tiles/generic-rpg-tile48.png');
+    this.load.image('road-0-2', 'assets/tiles/generic-rpg-tile61.png');
+    this.load.image('road-1-2', 'assets/tiles/generic-rpg-tile44.png');
+    this.load.image('road-2-2', 'assets/tiles/generic-rpg-tile46.png');
+    
+    this.load.spritesheet('character', 'assets/chars/Female 11-1.png', { frameWidth: 32, frameHeight: 32 });
+}
+
+// function findCenter(a, b){
+// 	var width, height;
+
+//   console.log('Finding center: ', a, b, grid[a][b]);
+
+//   for(height=0;height+a<Ytiles;++height){
+//     if(grid[height+a][b]!=grid[a][b])
+//       break;
+//   }
+//   for(width=0;width+b<Xtiles;++width){
+//     if(grid[a][width+b]!=grid[a][b])
+//       break;
+//   }
+
+//   console.log('Width: ', width, 'Height: ', height);
+
+//   var centerY=Math.round(a-height/2), temp=Math.round(b-width/2);
+
+//   console.log('Center: (', temp, ', ', centerY, ')');
+
+// 	return [centerY, temp];
+// }
+
+// var letterbox=0;
+// var shop=1;
+// var redtree=2;
+// var bluetree=3;
+// var box=4;
+// var house=5;
+// var rock=6;
+// var pond=7;
+
+// function drawObject(i, j, obj){
+//   if(obj==letterbox){
+//     this.add.image(j*tile+tile/2, i*tile+tile/2, 'letterbox');
+//   }
+//   else if(obj==shop){
+//     this.add.image(j*tile+tile/2, i*tile+tile/2, 'shop');
+//   }
+//   else if(obj==redtree){
+//     this.add.image(j*tile+tile/2, i*tile+tile/2, 'redtree');
+//   }
+//   else if(obj==bluetree){
+//     this.add.image(j*tile+tile/2, i*tile+tile/2, 'bluetree');
+//   }
+//   else if(obj==box){
+//     this.add.image(j*tile+tile/2, i*tile+tile/2, 'box');
+//   }
+//   else if(obj==house){
+//     this.add.image(j*tile+tile/2, i*tile+tile/2, 'house');
+//   }
+//   else if(obj==rock){
+//     this.add.image(j*tile+tile/2, i*tile+tile/2, 'rock');
+//   }
+//   else if(obj==pond){
+//     this.add.image(j*tile+tile/2, i*tile+tile/2, 'pond');
+//   }
+// }
+
+function drawRoad(x, y){
+	platforms.create(x*tile+tile/2, y*tile+tile/2, 'roadcenter');
+
+	// Drawing road segments on spaces with 0 in the surrounding 3x3 block
+
+	var startY=y-1;
+	var startX=x-1;
+
+	var endY=startY+2;
+	var endX=startX+2;
+}
+    //..............................................CALCULATIONS........................
+    var speed, speedBonus, attention;
+
+/*    function SpeedCalculation(timeRemaining){
+	
+		var speedBonus=0, speedScore=0, speedPenalty=0;
+	
+		if (timeRemaining >=0){ // before time
+			speedScore=100;
+			if (timeRemaining>=optimal){
+				speedBonus=((timeRemaining-optimal)/this.totalTime)*100
+			}
+		} else { // overtime
+			speedPenalty=(timeRemaining/this.totalTime)*100;
+			speedScore=penalty+100;
+		}
+
+    }*/
+
+    var problem;
+    function problemSolvingCalculation(){
+      var optimal=162;
+      var userSteps=countX+countY;
+      if (optimal<=userSteps){
+          problem=100;
+      }
+      else {
+          problem=100-((userSteps-optimal/optimal)*100)
+      }
+     // console.log('Problem Solving ', problem);
+    }
+
+function create ()
+{
+
+    //Platform and Object declaration 
+    objects = this.physics.add.staticGroup();
+    platforms = this.physics.add.staticGroup();
+
+    //................................................PATH CREATION..............................
+
+    for (i=0;i<Ytiles;++i){
+    	for(j=0;j<Xtiles;++j){
+    		// if(grid[i][j]==grass){
+    			this.add.image(j*tile+tile/2, i*tile+tile/2, 'grasscenter');
+    		// }
+    		if(grid[i][j]==road){
+    			drawRoad(j, i);
+    			// platforms.create(j*tile+tile/2, i*tile+tile/2, 'roadcenter');
+    		}
+    	}
+    }
+	
+	console.log('Road Drawn');
+
+    var center;
+
+// var letterbox=0;
+// var shop=1;
+// var redtree=2;
+// var bluetree=3;
+// var box=4;
+// var house=5;
+// var rock=6;
+// var pond=7;
+
+    
+
+    // REFERENCE TILES: do not erase these
+
+    // this.add.image(0*tile+tile/2, 0*tile+tile/2, 'road-0-0');
+    // this.add.image(0*tile+tile/2, 1*tile+tile/2, 'road-0-1');
+    // this.add.image(0*tile+tile/2, 2*tile+tile/2, 'road-0-2');
+    // this.add.image(1*tile+tile/2, 0*tile+tile/2, 'road-1-0');
+    // this.add.image(1*tile+tile/2, 1*tile+tile/2, 'road-1-1');
+    // this.add.image(1*tile+tile/2, 2*tile+tile/2, 'road-1-2');
+    // this.add.image(2*tile+tile/2, 0*tile+tile/2, 'road-2-0');
+    // this.add.image(2*tile+tile/2, 1*tile+tile/2, 'road-2-1');
+    // this.add.image(2*tile+tile/2, 2*tile+tile/2, 'road-2-2');
+
+    // this.add.image(tile*3+0*tile+tile/2, 0*tile+tile/2, 'grass-0-0');
+    // this.add.image(tile*3+0*tile+tile/2, 1*tile+tile/2, 'grass-0-1');
+    // this.add.image(tile*3+0*tile+tile/2, 2*tile+tile/2, 'grass-0-2');
+    // this.add.image(tile*3+1*tile+tile/2, 0*tile+tile/2, 'grass-1-0');
+    // this.add.image(tile*3+1*tile+tile/2, 1*tile+tile/2, 'grass-1-1');
+    // this.add.image(tile*3+1*tile+tile/2, 2*tile+tile/2, 'grass-1-2');
+    // this.add.image(tile*3+2*tile+tile/2, 0*tile+tile/2, 'grass-2-0');
+    // this.add.image(tile*3+2*tile+tile/2, 1*tile+tile/2, 'grass-2-1');
+    // this.add.image(tile*3+2*tile+tile/2, 2*tile+tile/2, 'grass-2-2');
+
+//............................................................PATH COMPLETE.......................
+	//River
+	for (j=0;j<250;j+=tile){
+	    		 platforms.create(680,j,'waterleft');
+	   			 platforms.create(680+tile,j,'waterright');
+	    }
+	 objects.create(680, 190, 'wf01');
+	 objects.create(680+tile, 190, 'wf02');
+	 objects.create(680, 230, 'wf03');
+	objects.create(680+tile, 230, 'wf04');
+	 objects.create(730, 260, 'wf05');
+	objects.create(654, 260, 'wf06');
+	 objects.create(650,230,'pondright')
+     objects.create(725,230,'pondleft')
+  //.................Fence
+	objects.create(300,240, 'flowers');
+	//up
+	for (j=270;j<350;j+=tile){
+    		 objects.create(j,210, 'f_front');
+    }
+    //down
+	for (j=270;j<350;j+=tile){
+    		 objects.create(j,260, 'f_front');
+    }
+     objects.create(245,210, 'f_leftup');
+     objects.create(355,210, 'f_rightup');
+     objects.create(355,250, 'f_rightdown');
+     objects.create(245,250, 'f_leftdown');
+     objects.create(245,230, 'f_side');
+     objects.create(355,230, 'f_side');
+
+//............................................................OBJECT CREATION....................
+	
+    // objects.create(100, 450, 'letterbox');
+
+    //objects.create(700,180, 'fence');
+    // objects.create(100, 300, 'vendor');
+    // objects.create(100, 70, 'box');
+    // objects.create(400, 120, 'house');
+
+    // var temp=findCenter(12);
+    // objects.create(temp[0], temp[1], 'house');
+
+    // objects.create(700, 300, 'redtree');
+    //  objects.create(700, 440, 'bluetree');
+    // objects.create(407,350, 'water');
+    // objects.create(250,400, 'rocks');
+    // objects.create(280,120, 'rocks');
+   
+    objects.create(690,100,'bridge')
+   // objects.create(760,240,'pondleft')
+   
+    //objects.create(650,50, 'tree');
+    //objects.create(750,50, 'tree');
+    //objects.create(700,50, 'tree');
+
+
+
+    //  Now let's create some ledges
+    objects.create(400, 595, 'wall1');
+    objects.create(400, 5, 'wall1');
+    objects.create(5, 300, 'wall2');
+    objects.create(795, 300, 'wall2');
+
+
+    //..................................................TIMER...............................
+    this.startTime = new Date();
+	this.totalTime = 30;
+	this.timeElapsed = 0;
+	
+	console.log('TOTAL TIME: ', this.totalTime);
+	
+	this.timeLabel = this.add.text(16, 16, "0:00", {fontSize: '20px', fill: "#000000"});
+    this.timeLabel.align = 'center';
+
+
+    this.add.image(riddleY, riddleX, 'riddle0');
+
+
+    //.................................................... Drawing Objects
+
+
+
+    for (i=0;i<Ytiles;++i){
+      for(j=0;j<Xtiles;++j){
+        // if (grid[i][j]==letterbox){
+        //   objects.create(j*tile+tile/2, i*tile+tile/2, 'letterbox');
+        //   console.log(i, j);
+        // }
+        if (grid[i][j]!=road && grid[i][j]!=grass && objectDrawn[grid[i][j]]==false){
+
+            // Finding Center of Object
+
+            var width, height;
+
+				//console.log('Finding center: ', i, j, grid[i][j]);
+
+            for(height=0;height+i<Ytiles;++height){
+              if(grid[height+i][j]!=grid[i][j])
+                break;
+            }
+            for(width=0;width+j<Xtiles;++width){
+              if(grid[i][width+j]!=grid[i][j])
+                break;
+            }
+
+            console.log('Width: ', width, 'Height: ', height);
+
+            var centerY=Math.round(i+height/2)-1, centerX=Math.round(j+width/2)-1;
+
+          //  console.log('Center: (', centerX, ', ', centerY, ')');
+
+            if (grid[i][j]==box){
+
+             // console.log('BOX: (', centerX, ', ', centerY, ')');
+            }
+
+            // return [centerY, temp];
+            // center=findCenter(i, j);
+          
+            if(grid[i][j]==letterbox){
+              objects.create(centerX*tile+tile/2, centerY*tile+tile/2, 'letterbox');
+            }
+            else if(grid[i][j]==shop){
+              objects.create(centerX*tile+tile/2, centerY*tile+tile/2, 'shop');
+            }
+            else if(grid[i][j]==redtree){
+              objects.create(centerX*tile+tile/2, centerY*tile+tile/2, 'redtree');
+            }
+            else if(grid[i][j]==bluetree){
+              objects.create(centerX*tile+tile/2, centerY*tile+tile/2, 'bluetree');
+            }
+            else if(grid[i][j]==box){
+              objects.create(centerX*tile+tile/2, centerY*tile+tile/2, 'box');
+            }
+            else if(grid[i][j]==house){
+              objects.create(centerX*tile+tile/2, centerY*tile+tile/2, 'house');
+            }
+            else if(grid[i][j]==rock){
+              objects.create(centerX*tile+tile/2, centerY*tile+tile/2, 'rock');
+            }
+            else if(grid[i][j]==water){
+              objects.create(centerX*tile+tile/2, centerY*tile+tile/2, 'water');
+            }
+
+            objectDrawn[grid[i][j]]=true;
+        }
+      }
+    }
+	
+	console.log('Found centers');
+
+
+    // The player and its settings
+    player = this.physics.add.sprite(16, 500, 'character');
+
+    var x=Math.round(player.x/tile);
+    var y=Math.round(player.y/tile);
+
+    currLeft=grid[y][x-1];
+    currRight=grid[y][x+1];
+    currUp=grid[y-1][x];
+    currDown=grid[y+1][x];
+
+    prevLeft=grid[y][x-1];
+    prevRight=grid[y][x+1];
+    prevUp=grid[y-1][x];
+    prevDown=grid[y+1][x];
+
+    player.setCollideWorldBounds(true);
+
+    //  Our player animations, turning, walking left and walking right.
+    this.anims.create({
+        key: 'left',
+        frames: this.anims.generateFrameNumbers('character', { start: 3, end: 5 }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'turn',
+        frames: [ { key: 'character', frame: 1 } ],
+        frameRate: 20
+    });
+
+    this.anims.create({
+        key: 'right',
+        frames: this.anims.generateFrameNumbers('character', { start: 6, end: 8 }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'up',
+        frames: this.anims.generateFrameNumbers('character', { start: 9, end: 11 }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'down',
+        frames: this.anims.generateFrameNumbers('character', { start: 0, end: 2 }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    //  Input Events
+    cursors = this.input.keyboard.createCursorKeys();
+
+  
+    //  The score
+    // scoreTextX = this.add.text(16, 116, 'X: 0', { fontSize: '32px', fill: '#000' });
+    // scoreTextY = this.add.text(16, 140, 'Y: 0', { fontSize: '32px', fill: '#000' });
+
+    //  Collide the player and the stars with the platforms
+    // this.physics.add.collider(player, objects);
+    // this.physics.add.collider(stars, objects);
+   
+	console.log('Create() done ...');
+
+}
+//................................................Movement functions..........................
+function canMoveUp(){
+	var up=false;
+	for (var i=gridY;i<=1+gridY;++i){
+		for (var j=gridX;j<=2+gridX;++j){
+			if(grid[i][j]==road){
+				up=true;
+			}
+		}
+	}
+	return up;
+}
+
+function canMoveDown(){
+	var down=false;
+	for (var i=gridY+1;i<=2+gridY;++i){
+		for (var j=gridX;j<=2+gridX;++j){
+			if(grid[i][j]==road){
+				down=true;
+			}
+		}
+	}
+	return down;
+}
+
+function canMoveRight(){
+	var right=false;
+	for (var i=gridY;i<=2+gridY;++i){
+		for (var j=gridX+1;j<=2+gridX;++j){
+			if(grid[i][j]==road){
+				right=true;
+			}
+		}
+	}
+	return right;
+}
+
+function canMoveLeft(){
+	var left=false;
+	for (var i=gridY;i<=2+gridY;++i){
+		for (var j=gridX;j<=1+gridX;++j){
+			if(grid[i][j]==road){
+				left=true;
+			}
+		}
+	}
+	return left;
+}
+
+function update ()
+{
+    if (gameOver)
+    {
+        return;
+    }
+
+    currX=Math.round(player.x/tile);
+    currY=Math.round(player.y/tile);
+
+    currLeft=grid[currY][currX-1];
+    currRight=grid[currY][currX+1];
+    currUp=grid[currY-1][currX];
+    currDown=grid[currY+1][currX];
+
+    // Collision Detection
+    
+    if(currX!=prevX){
+    	prevX=currX;
+    	countX+=1;
+    }
+    
+    if(currY!=y){
+    	y=currY;
+    	countY+=1;
+    }
+
+    // Changing Riddles
+    // Traversing the state tree
+
+    if(currRiddleState==0 && currUp==letterbox){
+      currRiddleState=1;
+      this.add.image(riddleY, riddleX, 'riddle1');
+    }
+
+    else if( currRiddleState==1 && currLeft==shop){
+      currRiddleState=2;
+      this.add.image(riddleY, riddleX, 'riddle2');
+    }
+
+    else if(currRiddleState==2 && currRight==redtree){
+      currRiddleState=3;
+      this.add.image(864-16, 530, 'bluepotion');
+      this.add.image(6*tile+tile/2, 4*tile+tile/2, 'boxopen');
+
+    }
+
+    else if(currRiddleState==3 && currRight==bluetree){
+      currRiddleState=7;
+      this.add.image(864+16, 530, 'redpotion');
+    }
+
+    else if(currRiddleState==4 && currRight==redtree){
+      currRiddleState=7;
+      this.add.image(864-16, 530, 'bluepotion');
+      this.add.image(6*tile+tile/2, 4*tile+tile/2, 'boxopen');
+    }
+
+    else if(currRiddleState==2 && currRight==bluetree){
+      currRiddleState=4;
+      this.add.image(864+16, 530, 'redpotion');
+    }
+
+    else if((currRiddleState==3 || currRiddleState==7) && currUp==box){
+      currRiddleState=5;
+      this.add.image(864-16+32, 530, 'key');
+      this.add.image(riddleY, riddleX, 'riddle3');
+      
+    }
+
+    else if(currRiddleState==5 && currUp==house){
+      SpeedCalculation(this.startTime);
+      //attentionCalculation(this.startTime);
+
+      //console.log(speed);
+      //console.log(attention);
+
+      //problemSolvingCalculation();
+
+      gameOver=true;
+    }
+
+    //..................................................Timer continued.......................
+	var currentTime = new Date();
+	var timeDifference = this.startTime.getTime() - currentTime.getTime();
+
+	//Time elapsed in seconds
+	this.timeElapsed = Math.abs(timeDifference / 1000);
+	//Time remaining in seconds
+	var timeRemaining = this.totalTime - this.timeElapsed; 
+
+	//Convert seconds into minutes and seconds
+/*	var minutes = Math.floor(timeRemaining / 60);
+	var seconds = Math.floor(timeRemaining) - (60 * minutes);
+
+	//Display minutes, add a 0 to the start if less than 10
+	var result = (minutes < 10) ? minutes : minutes; 
+
+	//Display seconds, add a 0 to the start if less than 10
+	result += (seconds < 10) ? ":0" + seconds : ":" + seconds; 
+	*/
+	result=Math.floor(timeRemaining);
+	
+	this.timeLabel.setText(result);
+  
+	
+	
+
+	gridX=Math.round(player.x/tile)-1;
+	gridY=Math.round(player.y/tile)-1;
+
+	canLeft=canMoveLeft();
+	canRight=canMoveRight();
+	canUp=canMoveUp();
+	canDown=canMoveDown();
+	
+	prevLeftKey=currLeftKey;
+	prevRightKey=currRightKey;
+	prevUpKey=currUpKey;
+	prevDownKey=currDownKey;
+	
+	currUpKey=cursors.up.isDown;
+	currDownKey=cursors.down.isDown;
+	currLeftKey=cursors.left.isDown;
+	currRightKey=cursors.right.isDown;
+
+  // if(currUp==letterbox){
+  //   console.log('letterbox');
+  // }
+  // if (currLeft==shop){
+  //   console.log('shop');
+  // }
+  
+  if(prevUp!=house && currUp==house){
+  console.log('TIMESTAMP (Remaining Time):', timeRemaining);
+	console.log('Penalty ', speedPenalty);
+	console.log('Coins ', speedBonus);
+	console.log('Score ', speedScore);
+  }
+
+    if (currLeftKey)
+    {
+    	if(canLeft){
+	        player.setVelocityX(-160);
+
+    	} else {
+    		// Left Collision
+	        player.setVelocityX(0);
+
+  		    if(prevLeft!=currLeft && currLeft!=grass && currLeft!=road/* && currLeftKey!=prevLeftKey*/){
+  		    	collisionTime[currLeft]+=1;
+  				  console.log('collision', collisionTime[currLeft]);
+            if(currUpKey!=prevLeftKey)
+              collisionCount[currLeft]+=1;
+  		      }
+    	}
+	    player.setVelocityY(0);
+	    player.anims.play('left', true);
+    } 
+    else if (currRightKey)
+    {
+    	if (canRight){
+    		 player.setVelocityX(160);
+    	}
+       	else {
+       		  player.setVelocityX(0);
+
+		    if(prevRight!=currRight && currRight!=grass && currRight!=road/* && currRightKey!=prevRightKey*/){
+		    	collisionTime[currRight]+=1;
+				  //console.log('collision', collisionTime[currRight]);
+          if(currRightKey!=prevRightKey)
+            collisionCount[currRight]+=1;
+		    }
+     	}
+      player.setVelocityY(0);
+      player.anims.play('right', true);
+    }
+    else if (currUpKey)
+    {
+    	if (canUp){
+    		player.setVelocityY(-160);
+    	} else {
+      	player.setVelocityY(0);
+
+        //console.log(currUp);
+        //console.log(gridY, gridX);
+	      if(prevUp!=currUp && currUp!=grass && currUp!=road/* && currUpKey!=prevUpKey*/){
+          if(currUpKey!=prevUpKey)
+            collisionCount[currUp]+=1;
+  	    	collisionTime[currUp]+=1;
+  			 // console.log('collision', collisionTime[currUp]);
+  	    }
+      }
+      player.setVelocityX(0);
+      player.anims.play('up', true);
+    }
+    else if (currDownKey)
+    {
+    	if (canDown){
+    		 player.setVelocityY(160);
+    	}
+        else {
+        	 player.setVelocityY(0);
+
+		    if(prevDown!=currDown && currDown!=grass && currDown!=road/* && currDownKey!=prevDownKey*/){
+          if(currDownKey!=prevDownKey)
+            collisionCount[currDown]+=1;
+		    	collisionTime[currDown]+=1;
+  				//console.log(collisionTime[currDown]);
+  		    }
+        }
+        player.setVelocityX(0);
+        player.anims.play('down', true);
+    }
+    else{
+        player.setVelocityX(0);
+        player.setVelocityY(0);
+        player.anims.play('turn', true);
+    }
+
+    if (cursors.up.isDown && player.body.touching.down)
+    {
+        player.setVelocityY(-160);
+    }
+	
+	
+}
+
+
+ function nextpage() {
+	
+	/*console.log("Speed ",speedScore);
+	console.log("Speed Bonus",speedBonus);
+     localStorage.setItem("learningmeterval","50");
+	 localStorage.setItem("speedval","10");
+	 localStorage.setItem("attentionval","30");
+	 localStorage.setItem("Problemsolvingval","10");
+	 localStorage.setItem("flexibilityval","30");
+	 localStorage.setItem("memoryval","50");
+	 localStorage.setItem("learningindexval","50");
+     window.location.replace("result.html");*/
+
+  }
+
+</script>
+
+</body>
+</html>
